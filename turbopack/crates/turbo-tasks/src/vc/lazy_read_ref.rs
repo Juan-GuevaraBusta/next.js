@@ -16,34 +16,18 @@ pub(crate) const LAZY_READ_CROSS_EXECUTION: &str =
     "A `LazyReadRef` (or a pending `lazy_reader()` future) was used outside of the task execution \
      that created it. It must not be moved to other threads or tasks.";
 
-/// The result of [`Vc::lazy_reader`](crate::Vc::lazy_reader): a read of a cell whose dependency
-/// is removed again when the value is never accessed.
+/// The result of [`Vc::lazy_reader`](crate::Vc::lazy_reader): a cell read that can be canceled.
 ///
-/// While it is alive, the reading task depends on the whole cell, so it is invalidated by any
-/// change. The value is only accessible via [`LazyReadRef::get`], which marks the read as
-/// accessed. When the `LazyReadRef` is dropped within the task execution that read it:
-///
-/// - if [`get`](LazyReadRef::get) was never called, the dependency created by this read is removed,
-///   as that proves the task doesn't depend on the value;
-/// - otherwise the dependency is kept, and behaves like the dependency of a normal read (`.await`).
+/// The value is only accessible via [`LazyReadRef::get`]. When the `LazyReadRef` is dropped
+/// without [`get`](LazyReadRef::get) ever being called, the read is canceled and the task no longer
+/// depends on the cell through it. Otherwise it behaves like a normal read (`.await`).
 ///
 /// This allows reading a cell that is rarely needed ahead of time, e.g. to pass it into
 /// synchronous code that decides whether it needs the value, without depending on it when it
 /// isn't needed.
 ///
-/// Every `lazy_reader()` call owns a separate dependency. Removing it never affects other reads of
-/// the same cell in the same execution: normal reads, keyed reads, and other `LazyReadRef`s keep
-/// their own dependencies. The task only stops depending on the cell when none of its reads need
-/// it.
-///
-/// Dependencies on task outputs that were read while resolving the [`Vc`](crate::Vc) to a cell
-/// are always kept.
-///
-/// It **must** be dropped within the task execution that read it (it may be dropped in local
-/// tasks of that execution). When it is still alive at the end of that task execution, or dropped
-/// outside of it (e.g. moved to another thread or task), the task fails with a panic error
-/// (replacing its result) and its dependency on the cell is kept as a normal dependency. In debug
-/// builds, using or dropping it outside of the creating execution also panics there.
+/// It **must** be dropped within the task execution that read it. Otherwise the task fails with a
+/// panic error and keeps the dependency.
 #[must_use]
 pub struct LazyReadRef<T>
 where

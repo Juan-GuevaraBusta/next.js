@@ -599,9 +599,9 @@ where
     /// Once the [`KeyedReadRef`] is dropped, the task only depends on the accessed keys instead of
     /// the full value. It must be dropped within the same task execution, otherwise the task
     /// fails. See [`KeyedReadRef`] for details.
-    pub async fn keyed(self) -> Result<KeyedReadRef<T>> {
+    pub fn keyed(self) -> impl Future<Output = Result<KeyedReadRef<T>>> {
         let future: ReadVcFuture<T> = self.node.into_read().into();
-        future.read_keyed().await
+        future.read_keyed()
     }
 }
 
@@ -616,9 +616,9 @@ where
     /// the value ever being accessed via [`LazyReadRef::get`], that dependency is removed again. It
     /// must be dropped within the same task execution, otherwise the task fails. See
     /// [`LazyReadRef`] for details.
-    pub async fn lazy_reader(self) -> Result<LazyReadRef<T>> {
+    pub fn lazy_reader(self) -> impl Future<Output = Result<LazyReadRef<T>>> {
         let future: ReadVcFuture<T> = self.node.into_read().into();
-        future.read_lazy().await
+        future.read_lazy()
     }
 }
 
