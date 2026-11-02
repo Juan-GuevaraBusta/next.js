@@ -577,6 +577,35 @@ function parseAndSourceMap(
   }
 
   if (sourceMappedStack === '' && sourceMappedFrames.length > 0) {
+    if (
+      errorName === 'RangeError' &&
+      error.message === 'Maximum call stack size exceeded'
+    ) {
+      // A render loop can overflow after the application component that
+      // started it has returned. In that case the captured stack only contains
+      // framework frames, and ignore-listing every frame would remove the only
+      // location that can help identify where the overflow occurred.
+      const firstLocatedFrame = sourceMappedFrames.find(
+        ({ stack }) =>
+          stack.file !== null && stack.line1 !== null && stack.column1 !== null
+      )
+
+      if (firstLocatedFrame !== undefined) {
+        sourceMappedStack =
+          '\n' +
+          dim(
+            frameToString(
+              firstLocatedFrame.stack.methodName.startsWith('at ')
+                ? null
+                : firstLocatedFrame.stack.methodName,
+              firstLocatedFrame.stack.file,
+              firstLocatedFrame.stack.line1,
+              firstLocatedFrame.stack.column1
+            )
+          )
+      }
+    }
+
     // The `at` marker is important so that Node.js doesn't add square brackets
     // around the stringified error i.e. this results in
     // Error: message
@@ -584,7 +613,7 @@ function parseAndSourceMap(
     // instead of
     // [Error: message
     //   at <ignore-listed frames>]
-    sourceMappedStack = '\n    at ' + italic('ignore-listed frames')
+    sourceMappedStack += '\n    at ' + italic('ignore-listed frames')
   }
 
   return (
