@@ -10,19 +10,16 @@ export const matchNextPageBundleRequest = getPathMatch(
  * A slow registry would otherwise delay the dev overlay.
  */
 export function getPendingVersionInfo(): VersionInfo {
-  let installed = '0.0.0'
-  try {
-    installed = require('next/package.json').version
-  } catch {}
-  return { installed, staleness: 'unknown' }
+  return {
+    installed: process.env.__NEXT_VERSION as string,
+    staleness: 'unknown',
+  }
 }
 
 export async function getVersionInfo(): Promise<VersionInfo> {
-  let installed = '0.0.0'
+  const installed = process.env.__NEXT_VERSION as string
 
   try {
-    installed = require('next/package.json').version
-
     let res
 
     try {
