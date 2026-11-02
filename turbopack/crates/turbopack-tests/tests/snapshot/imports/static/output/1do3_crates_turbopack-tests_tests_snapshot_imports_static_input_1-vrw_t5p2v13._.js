@@ -9,7 +9,7 @@ console.log(__TURBOPACK__imported__module__$5b$project$5d2f$turbopack$2f$crates$
 }),
 "[project]/turbopack/crates/turbopack-tests/tests/snapshot/imports/static/input/vercel.svg (static in ecmascript)", ((__turbopack_context__) => {
 
-__turbopack_context__.q("/static/vercel.2yvrnb3rlbnfq.svg");}),
+__turbopack_context__.q(__turbopack_context__.u("/static/vercel.2yvrnb3rlbnfq.svg"));}),
 ]);
 
 //# sourceMappingURL=1do3_crates_turbopack-tests_tests_snapshot_imports_static_input_1-vrw_t5p2v13._.js.map
