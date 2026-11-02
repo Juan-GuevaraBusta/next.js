@@ -1679,6 +1679,7 @@ impl Project {
             this.next_config.report_system_env_inlining(),
             this.server_hmr,
             import_meta_env_base_url(this.next_config).await?,
+            this.next_config.computed_asset_prefix().owned().await?,
         ))
     }
 
@@ -1691,6 +1692,7 @@ impl Project {
             self.current_node_js_version(),
             this.next_config.report_system_env_inlining(),
             import_meta_env_base_url(this.next_config).await?,
+            this.next_config.computed_asset_prefix().owned().await?,
         ))
     }
 
