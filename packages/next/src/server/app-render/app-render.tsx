@@ -172,6 +172,8 @@ import {
 import { isDynamicServerError } from '../../client/components/hooks-server-context'
 import type { ServerActionRequestMetadata } from '../lib/server-action-request-meta'
 import { getFlightStream } from './use-flight-response'
+import { isNodeNextResponse } from '../base-http/helpers'
+import { signalFromNodeResponse } from '../web/spec-extension/adapters/next-request'
 import {
   StaticGenBailoutError,
   isStaticGenBailoutError,
@@ -3730,8 +3732,12 @@ async function renderToStream(
       )
     }
 
+    const responseAbortSignal = isNodeNextResponse(res)
+      ? signalFromNodeResponse(res.originalResponse)
+      : undefined
+
     const allCapturedErrors: Array<unknown> = []
-    const htmlRendererErrorHandler = createHTMLErrorHandler(
+    const reportHTMLRenderError = createHTMLErrorHandler(
       process.env.NODE_ENV === 'development',
       isBuildTimePrerendering,
       ctx.renderOpts.experimental.reactBrowserBailout,
@@ -3740,6 +3746,15 @@ async function renderToStream(
       onHTMLRenderSSRError,
       renderSpan
     )
+    const htmlRendererErrorHandler: typeof reportHTMLRenderError = (
+      thrownValue,
+      errorInfo
+    ) => {
+      // After a client disconnect, the aborted Flight render surfaces in SSR as
+      // obfuscated errors that aren't actionable, so don't report them.
+      if (responseAbortSignal?.aborted) return
+      return reportHTMLRenderError(thrownValue, errorInfo)
+    }
 
     let reactServerResult: null | ReactServerResult = null
     let reactDebugStream: AnyStream | undefined
@@ -4062,6 +4077,10 @@ async function renderToStream(
                 filterStackFrame,
                 onError: serverComponentsErrorHandler,
                 debugChannel: debugChannel?.serverSide,
+                // The Flight stream is replayed into SSR, so a client
+                // disconnect never closes it. Abort it from the response
+                // instead, so that `cacheSignal()` is aborted too.
+                signal: responseAbortSignal,
               }
             )
           )
